@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Smart Farm Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load E-Ra Widget thật -->
+  <script src="https://www.unpkg.com/@eohjsc/era-widget@1.1.3/src/index.js"></script>
+  <style>
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 28px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #ccc; transition: 0.4s; border-radius: 28px;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px;
+      background-color: white; transition: 0.4s; border-radius: 50%;
+    }
+    input:checked + .slider { background-color: #3b82f6; }
+    input:checked + .slider:before { transform: translateX(22px); }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4 md:p-6">
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-3xl font-extrabold text-gray-800 mb-6 text-center tracking-wide">
+      🌱 Hệ Thống Giám Sát Nông Trại Thông Minh
+    </h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Cảm biến -->
+      <div class="bg-white rounded-2xl shadow-lg p-5 hover:shadow-xl transition">
+        <h2 class="text-xl font-bold text-blue-600 mb-2">Giám Sát Môi Trường</h2>
+        <p class="text-sm text-gray-500 mb-4">Theo dõi thông số môi trường theo thời gian thực</p>
+        <div class="space-y-3">
+          <!-- Môi trường chung -->
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <p class="text-sm text-gray-500">🌡️ Nhiệt độ</p>
+              <p id="temperature" class="text-xl font-semibold">-- °C</p>
+            </div>
+            <div id="temp-status" class="text-sm font-semibold text-green-600">Bình thường</div>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <p class="text-sm text-gray-500">💧 Độ ẩm</p>
+              <p id="humidity" class="text-xl font-semibold">-- %</p>
+            </div>
+            <div id="humidity-status" class="text-sm font-semibold text-green-600">Bình thường</div>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <p class="text-sm text-gray-500">🌱 Độ ẩm đất</p>
+              <p id="soilMoisture" class="text-xl font-semibold">-- %</p>
+            </div>
+            <div id="soil-status" class="text-sm font-semibold text-green-600">Đủ ẩm</div>
+          </div>
+        </div>
+
+        <!-- Các luống A, B, C -->
+        <h3 class="text-lg font-semibold text-gray-700 mt-6 mb-3">Tình Trạng Phát Triển Các Luống</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Luống A -->
+          <div class="bg-green-50 rounded-lg p-3">
+            <h4 class="text-sm font-bold text-green-700 mb-2">Luống A</h4>
+            <div class="space-y-2 text-sm">
+              <div>
+                <p class="text-xs text-gray-500">📈 Chiều cao cây</p>
+                <p id="plantHeightA" class="font-semibold">-- cm</p>
+                <div id="growth-statusA" class="text-xs font-semibold text-green-600">Cây con</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Luống B -->
+          <div class="bg-green-50 rounded-lg p-3">
+            <h4 class="text-sm font-bold text-green-700 mb-2">Luống B</h4>
+            <div class="space-y-2 text-sm">
+              <div>
+                <p class="text-xs text-gray-500">📈 Chiều cao cây</p>
+                <p id="plantHeightB" class="font-semibold">-- cm</p>
+                <div id="growth-statusB" class="text-xs font-semibold text-green-600">Cây con</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Luống C -->
+          <div class="bg-green-50 rounded-lg p-3">
+            <h4 class="text-sm font-bold text-green-700 mb-2">Luống C</h4>
+            <div class="space-y-2 text-sm">
+              <div>
+                <p class="text-xs text-gray-500">📈 Chiều cao cây</p>
+                <p id="plantHeightC" class="font-semibold">-- cm</p>
+                <div id="growth-statusC" class="text-xs font-semibold text-green-600">Cây con</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Điều khiển -->
+      <div class="space-y-6">
+        <!-- Tưới -->
+        <div class="bg-white rounded-2xl shadow-lg p-5 hover:shadow-xl transition">
+          <h2 class="text-xl font-bold text-blue-600 mb-2">💦 Điều Khiển Tưới Tiêu</h2>
+          <div class="flex items-center space-x-3 mb-3">
+            <span class="text-gray-700 font-medium">Chế độ tưới:</span>
+            <label class="switch">
+              <input type="checkbox" id="irrigation-switch">
+              <span class="slider"></span>
+            </label>
+            <span id="irrigation-label" class="text-sm text-gray-600">Tự động</span>
+          </div>
+
+          <div id="irrigation-manual" class="hidden space-y-3">
+            <label class="block text-sm">⏱️ Thời gian tưới: <span id="irrigation-time" class="font-semibold text-blue-600">10</span> giây</label>
+            <input id="irrigation-duration" type="range" min="5" max="1200" step="5" value="10" class="w-full accent-blue-600">
+            <button id="btn-irrigate" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition">Bắt đầu tưới</button>
+          </div>
+
+          <div id="irrigation-auto" class="p-3 bg-blue-50 rounded-lg">
+            <p class="text-sm text-gray-600">Hệ thống tự động tưới khi đất &lt; 40% với điều kiện thời tiết</p>
+          </div>
+        </div>
+
+        <!-- Phân bón -->
+        <div class="bg-white rounded-2xl shadow-lg p-5 hover:shadow-xl transition">
+          <h2 class="text-xl font-bold text-green-600 mb-2">🌿 Điều Khiển Phân Bón</h2>
+          <div class="flex items-center space-x-3 mb-3">
+            <span class="text-gray-700 font-medium">Chế độ bón:</span>
+            <label class="switch">
+              <input type="checkbox" id="fertilizer-switch">
+              <span class="slider"></span>
+            </label>
+            <span id="fertilizer-label" class="text-sm text-gray-600">Tự động</span>
+          </div>
+
+          <div id="fertilizer-manual" class="hidden space-y-3">
+            <label class="block text-sm">Chọn loại phân:</label>
+            <div class="flex space-x-2">
+              <button id="btn-nitrogen" class="flex-1 border rounded p-2 hover:bg-green-100">Đạm (N)</button>
+              <button id="btn-phosphorus" class="flex-1 border rounded p-2 hover:bg-green-100">Lân (P)</button>
+              <button id="btn-potassium" class="flex-1 border rounded p-2 hover:bg-green-100">Kali (K)</button>
+            </div>
+            <label class="block text-sm">⏱️ Thời gian bón: <span id="fertilizer-time" class="font-semibold text-green-600">5</span> giây</label>
+            <input id="fertilizer-duration" type="range" min="3" max="20" step="1" value="5" class="w-full accent-green-600">
+            <button id="btn-fertilize" class="w-full bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition">Bón phân</button>
+          </div>
+
+          <div id="fertilizer-auto" class="p-3 bg-green-50 rounded-lg">
+            <p class="text-sm text-gray-600">Hệ thống tự động bón phân theo chiều cao cây, tổng 12s/lần, 1 lần/tuần.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trạng thái hệ thống -->
+    <div class="bg-white rounded-2xl shadow-lg p-5 mt-6 hover:shadow-xl transition">
+      <h2 class="text-xl font-bold text-indigo-600">📡 Trạng Thái Hệ Thống</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+        <div class="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
+          <div id="status-irrigation" class="w-4 h-4 rounded-full bg-gray-300 mb-2"></div>
+          <span class="text-sm">Tưới tiêu</span>
+        </div>
+        <div class="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
+          <div id="status-fertilizer" class="w-4 h-4 rounded-full bg-gray-300 mb-2"></div>
+          <span class="text-sm">Bón phân</span>
+        </div>
+        <div class="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
+          <div id="status-connection" class="w-4 h-4 rounded-full bg-gray-300 mb-2"></div>
+          <span class="text-sm">Kết nối</span>
+        </div>
+        <div class="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
+          <div id="status-power" class="w-4 h-4 rounded-full bg-gray-300 mb-2"></div>
+          <span class="text-sm">Nguồn điện</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const eraWidget = new EraWidget();
+    let realtimeConfigs = new Array(10).fill(null);  // Mở rộng để bao gồm durations (6-9)
+    let actionConfigs = new Array(8).fill(null);  // 8 actions theo config
+    let isConfigured = false;
+    let initialized = false;
+
+    let irrigationMode = "auto";
+    let fertilizerMode = "auto";
+    let irrigationDuration = 10;  // Giây, sẽ override trong auto
+    let fertilizerDuration = 5;
+    let fertilizers = {nitrogen: false, phosphorus: false, potassium: false};
+    let isIrrigating = false;
+    let isFertilizing = false;
+
+    // Thêm state cho auto fert: lastFertilizeTime (localStorage để persist)
+    let lastFertilizeTime = localStorage.getItem('lastFertilizeTime') ? new Date(localStorage.getItem('lastFertilizeTime')) : new Date(0);
+    const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;  // ms
+
+    const sensorMap = ['temperature', 'humidity', 'soilMoisture', 'plantHeightA', 'plantHeightB', 'plantHeightC'];
+    const sensorUnits = ['°C', '%', '%', 'cm', 'cm', 'cm'];
+
+    // Sửa pinMap: chỉ số ON cho actions, durations cho realtime
+    const pinMap = {
+      irrigateOn: 1,        // Tuoi on (action 1)
+      nitrogenOn: 3,        // N on (action 3)
+      phosphorusOn: 5,      // P on (action 5) - sửa từ 4
+      potassiumOn: 7,       // K on (action 7) - sửa từ 6
+      irrigateDuration: 6,  // Realtime pin 6 (Tuoi duration)
+      nitrogenDuration: 7,  // Realtime pin 7 (N duration)
+      phosphorusDuration: 8,// Realtime pin 8 (P duration)
+      potassiumDuration: 9  // Realtime pin 9 (K duration)
+    };
+
+    function setIndicator(id, active) {
+      const el = document.getElementById(id);
+      if (el) el.className = "w-4 h-4 rounded-full mb-2 " + (active ? "bg-green-500" : "bg-gray-300");
+    }
+
+    function setStatus(id, condition, trueText, falseText) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.textContent = condition ? trueText : falseText;
+        el.className = condition ? "text-red-600 font-semibold" : "text-green-600 font-semibold";
+      }
+    }
+
+    function updateSensorDisplay(index, value) {
+      if (index >= 0 && index < sensorMap.length && value !== null && !isNaN(value)) {
+        const el = document.getElementById(sensorMap[index]);
+        if (el) el.textContent = value.toFixed(1) + " " + sensorUnits[index];
+      }
+    }
+
+    function updateGrowthStatus(index, value) {
+      if (index >= 3 && index < 6 && value !== null && !isNaN(value)) {
+        const bed = String.fromCharCode(65 + (index - 3)); // A, B, C
+        const stage = value <= 3 ? "Cây con" : value <= 10 ? "Đang phát triển" : "Có thể thu hoạch";  // Sửa ngưỡng theo yêu cầu: 0-3, 3-10, 10-15
+        const el = document.getElementById("growth-status" + bed);
+        if (el) el.textContent = stage;
+      }
+    }
+
+    // Cập nhật duration từ realtime (nếu device gửi giá trị)
+    function updateDurationUI(key, value) {
+      if (value !== null && !isNaN(value)) {
+        if (key === 'irrigate') {
+          irrigationDuration = value;
+          document.getElementById("irrigation-time").textContent = value;
+          document.getElementById("irrigation-duration").value = value;
+        } else if (key === 'fertilizer') {
+          fertilizerDuration = value;
+          document.getElementById("fertilizer-time").textContent = value;
+          document.getElementById("fertilizer-duration").value = value;
+        }
+      }
+    }
+
+    function updateButtonState(buttonId, state) {
+      switch(buttonId) {
+        case 'irrigation':
+          irrigationMode = state ? "manual" : "auto";
+          document.getElementById('irrigation-label').textContent = irrigationMode === "auto" ? "Tự động" : "Thủ công";
+          document.getElementById('irrigation-manual').style.display = state ? 'block' : 'none';
+          document.getElementById('irrigation-auto').style.display = !state ? 'block' : 'none';
+          break;
+        case 'fertilizer':
+          fertilizerMode = state ? "manual" : "auto";
+          document.getElementById('fertilizer-label').textContent = fertilizerMode === "auto" ? "Tự động" : "Thủ công";
+          document.getElementById('fertilizer-manual').style.display = state ? 'block' : 'none';
+          document.getElementById('fertilizer-auto').style.display = !state ? 'block' : 'none';
+          break;
+        default:
+          if(buttonId in fertilizers) fertilizers[buttonId] = state;
+      }
+    }
+
+    // Sửa: Gửi duration qua realtime setValue (giả định method; kiểm tra console nếu lỗi)
+    function sendDuration(key, duration) {
+      let durPin;
+      switch(key) {
+        case 'irrigate': durPin = pinMap.irrigateDuration; break;
+        case 'nitrogen': durPin = pinMap.nitrogenDuration; break;
+        case 'phosphorus': durPin = pinMap.phosphorusDuration; break;
+        case 'potassium': durPin = pinMap.potassiumDuration; break;
+        default: return;
+      }
+      const rConfig = realtimeConfigs[durPin];
+      if (rConfig && isConfigured) {
+        console.log(`Setting ${key} duration to ${duration} via realtime ${durPin}`);
+        eraWidget.setValue(rConfig.id, duration);  // Nếu method khác, thay bằng updateValue/writeRealtime/etc.
+      }
+    }
+
+    function controlButton(buttonId, state) {
+      updateButtonState(buttonId, state);
+
+      if (buttonId === 'irrigate') {
+        if(state) {
+          isIrrigating = true;
+          setIndicator("status-irrigation", true);
+          const config = actionConfigs[pinMap.irrigateOn];
+          if(isConfigured && config) eraWidget.triggerAction(config.action, 0, {value:1});
+          setTimeout(()=>controlButton('irrigate', false), irrigationDuration*1000);
+        } else {
+          isIrrigating = false;
+          setIndicator("status-irrigation", false);
+          const offConfig = actionConfigs[0];  // Tuoi off
+          if(isConfigured && offConfig) eraWidget.triggerAction(offConfig.action, 0, {value:0});
+        }
+      }
+    }
+
+    function toggleFert(key) {
+      if(fertilizerMode !== "manual") return;
+      const current = fertilizers[key];
+      fertilizers[key] = !current;
+      const el = document.getElementById('btn-' + key);
+      if(el) {
+        if(!current) el.classList.add('bg-green-500', 'text-white');
+        else el.classList.remove('bg-green-500', 'text-white');
+      }
+    }
+
+    function resetAllRelays() {
+      // Reset irrigation
+      controlButton('irrigate', false);
+
+      // Reset fertilizers OFF
+      if (isConfigured) {
+        ['nitrogen', 'phosphorus', 'potassium'].forEach(key => {
+          const onIndex = pinMap[key + 'On'];
+          const offIndex = onIndex - 1;
+          const offConfig = actionConfigs[offIndex];
+          if (offConfig) {
+            eraWidget.triggerAction(offConfig.action, 0, {value: 0});
+          }
+        });
+      }
+
+      // Reset UI
+      ['nitrogen', 'phosphorus', 'potassium'].forEach(key => {
+        const el = document.getElementById('btn-' + key);
+        if (el) {
+          el.classList.remove('bg-green-500', 'text-white');
+        }
+      });
+
+      Object.keys(fertilizers).forEach(key => fertilizers[key] = false);
+      isFertilizing = false;
+      setIndicator("status-fertilizer", false);
+    }
+
+    // Logic auto fertilize dựa trên avg height
+    function triggerAutoFertilize() {
+      if (fertilizerMode !== "auto" || isFertilizing) return;
+      const now = new Date();
+      if (now - lastFertilizeTime < ONE_WEEK) return;  // Chưa đến tuần
+
+      let plantHeightA = parseFloat(document.getElementById('plantHeightA').textContent) || 0;
+      let plantHeightB = parseFloat(document.getElementById('plantHeightB').textContent) || 0;
+      let plantHeightC = parseFloat(document.getElementById('plantHeightC').textContent) || 0;
+      const avgHeight = (plantHeightA + plantHeightB + plantHeightC) / 3;
+
+      let ratios = {nitrogen: 1, phosphorus: 1, potassium: 1};  // Mặc định cây con
+      const totalRatio = 3;
+      if (avgHeight > 3 && avgHeight <= 10) {
+        ratios = {nitrogen: 2, phosphorus: 1, potassium: 2};
+        totalRatio = 5;
+      } else if (avgHeight > 10 && avgHeight <= 15) {
+        ratios = {nitrogen: 1, phosphorus: 1, potassium: 2};
+        totalRatio = 4;
+      }
+
+      const totalTime = 12;  // giây
+      const selectedKeys = ['nitrogen', 'phosphorus', 'potassium'];
+      const durations = {};
+      selectedKeys.forEach(key => {
+        durations[key] = Math.round((ratios[key] / totalRatio) * totalTime);
+        sendDuration(key, durations[key]);
+      });
+
+      // Trigger ON
+      selectedKeys.forEach(key => {
+        const pinIndex = pinMap[key + 'On'];
+        const config = actionConfigs[pinIndex];
+        if (isConfigured && config) {
+          eraWidget.triggerAction(config.action, 0, {value: 1});
+        }
+      });
+
+      isFertilizing = true;
+      setIndicator("status-fertilizer", true);
+
+      // Auto OFF sau max duration
+      const maxDur = Math.max(...Object.values(durations));
+      setTimeout(() => {
+        selectedKeys.forEach(key => {
+          const onIndex = pinMap[key + 'On'];
+          const offIndex = onIndex - 1;
+          const offConfig = actionConfigs[offIndex];
+          if (isConfigured && offConfig) {
+            eraWidget.triggerAction(offConfig.action, 0, {value: 0});
+          }
+        });
+
+        isFertilizing = false;
+        setIndicator("status-fertilizer", false);
+        lastFertilizeTime = now;
+        localStorage.setItem('lastFertilizeTime', now.toISOString());
+      }, maxDur * 1000);
+
+      console.log(`Auto fertilize triggered with ratios ${JSON.stringify(ratios)}, durations ${JSON.stringify(durations)}`);
+    }
+
+    eraWidget.init({
+      onConfiguration: (cfg) => {
+        cfg.realtime_configs.forEach((c, i) => { if (i < 10) realtimeConfigs[i] = c; });
+        cfg.actions.forEach((c, i) => { if (i < 8) actionConfigs[i] = c; });
+        isConfigured = true;
+        initialized = true;
+        updateButtonState('irrigation', false);
+        updateButtonState('fertilizer', false);
+        setIndicator("status-connection", true);
+        setIndicator("status-power", true);
+
+        setTimeout(() => {
+          resetAllRelays();
+        }, 500);
+      },
+      onValues: (values) => {
+        realtimeConfigs.forEach((c, i) => {
+          if (c && values[c.id]) {
+            const val = values[c.id].value;
+            if (i < 6) updateSensorDisplay(i, val);
+            else if (i >= 6) updateDurationUI(i === 6 ? 'irrigate' : 'fertilizer', val);  // Đồng bộ duration
+          }
+        });
+        if (!initialized) return;
+
+        let temperature = parseFloat(document.getElementById('temperature').textContent) || 0;
+        let humidity = parseFloat(document.getElementById('humidity').textContent) || 0;
+        let soilMoisture = parseFloat(document.getElementById('soilMoisture').textContent) || 0;
+        let plantHeightA = parseFloat(document.getElementById('plantHeightA').textContent) || 0;
+        let plantHeightB = parseFloat(document.getElementById('plantHeightB').textContent) || 0;
+        let plantHeightC = parseFloat(document.getElementById('plantHeightC').textContent) || 0;
+
+        setStatus("temp-status", temperature > 30, "Cao", "Bình thường");
+        setStatus("humidity-status", humidity > 80, "Cao", "Bình thường");
+        setStatus("soil-status", soilMoisture < 40, "Cần tưới", "Đủ ẩm");
+
+        updateGrowthStatus(3, plantHeightA);
+        updateGrowthStatus(4, plantHeightB);
+        updateGrowthStatus(5, plantHeightC);
+
+        // Sửa logic auto irrigation
+        const soilValue = soilMoisture;
+        if(!isNaN(soilValue) && irrigationMode==="auto" && soilValue<40 && !isIrrigating){
+          let autoDuration = 600;  // Mặc định 10 phút = 600s
+          const hotDry = (temperature > 33 || humidity < 40);
+          const coldHumid = (temperature < 18 || humidity > 85);
+          if (hotDry) {
+            autoDuration = 1200;  // 20 phút
+          } else if (coldHumid) {
+            autoDuration = 900;   // 15 phút
+          }
+          irrigationDuration = autoDuration;
+          sendDuration('irrigate', autoDuration);
+          controlButton('irrigate', true);
+          console.log(`Auto irrigation triggered with ${autoDuration}s (T=${temperature}, H=${humidity}, Soil=${soilValue})`);
+        }
+
+        // Check auto fertilize mỗi khi values update (có thể optimize bằng interval riêng)
+        if (fertilizerMode === "auto") {
+          triggerAutoFertilize();
+        }
+      },
+      needRealtimeConfigs:true,
+      needActions:true,
+      ready:true,
+      mobileHeight: 300
+    });
+
+    document.getElementById("irrigation-switch").addEventListener("change", e=>controlButton('irrigation', e.target.checked));
+    document.getElementById("fertilizer-switch").addEventListener("change", e=>controlButton('fertilizer', e.target.checked));
+    ["nitrogen","phosphorus","potassium"].forEach(k=>document.getElementById("btn-"+k).addEventListener("click", ()=>toggleFert(k)));
+
+    document.getElementById("btn-irrigate").onclick = ()=>{
+      if(irrigationMode!=="manual") return;
+      sendDuration('irrigate', irrigationDuration);  // Gửi duration trước
+      controlButton('irrigate', true);
+    };
+
+    document.getElementById("btn-fertilize").onclick = ()=>{
+      if(fertilizerMode!=="manual") return;
+      const selectedKeys = Object.keys(fertilizers).filter(k => fertilizers[k]);
+      if (selectedKeys.length === 0) return;
+
+      // Gửi duration cho từng loại selected
+      selectedKeys.forEach(key => sendDuration(key, fertilizerDuration));
+
+      // Trigger ON
+      selectedKeys.forEach(key => {
+        const pinIndex = pinMap[key + 'On'];
+        const config = actionConfigs[pinIndex];
+        if (isConfigured && config) {
+          eraWidget.triggerAction(config.action, 0, {value: 1});
+        }
+      });
+
+      isFertilizing = true;
+      setIndicator("status-fertilizer", true);
+
+      // Auto OFF
+      setTimeout(() => {
+        selectedKeys.forEach(key => {
+          const onIndex = pinMap[key + 'On'];
+          const offIndex = onIndex - 1;
+          const offConfig = actionConfigs[offIndex];
+          if (isConfigured && offConfig) {
+            eraWidget.triggerAction(offConfig.action, 0, {value: 0});
+          }
+        });
+
+        isFertilizing = false;
+        setIndicator("status-fertilizer", false);
+      }, fertilizerDuration * 1000);
+    };
+
+    document.getElementById("irrigation-duration").addEventListener("input", e=>{
+      irrigationDuration = Math.max(+e.target.value,5);
+      document.getElementById("irrigation-time").textContent = irrigationDuration;
+      // Có thể gửi realtime ngay khi slide, nhưng để tiết kiệm, gửi khi start
+    });
+
+    document.getElementById("fertilizer-duration").addEventListener("input", e=>{
+      fertilizerDuration = Math.max(+e.target.value,3);
+      document.getElementById("fertilizer-time").textContent = fertilizerDuration;
+    });
+
+    // Thêm interval để check auto fert định kỳ (mỗi giờ, ví dụ)
+    setInterval(() => {
+      if (initialized && fertilizerMode === "auto") {
+        triggerAutoFertilize();
+      }
+    }, 60 * 60 * 1000);  // 1 giờ
+  </script>
+</body>
+</html>
